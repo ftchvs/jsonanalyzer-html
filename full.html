@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JSON Analyzer - All Keys</title>
+<style>
+*{box-sizing:border-box;margin:0}
+body{font:16px/1.5 sans-serif;color:#333;background:#f4f4f4;padding:20px}
+.container{max-width:1200px;margin:auto;background:#fff;padding:20px;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,.1)}
+h1{text-align:center;color:#2c3e50;margin-bottom:20px}
+.card{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:20px;margin-bottom:20px}
+.file-upload{display:flex;align-items:center;margin-bottom:15px}
+.file-upload input[type="file"]{display:none}
+.file-upload label{background:#3498db;color:#fff;padding:10px 15px;border-radius:5px;cursor:pointer}
+.file-upload label:hover{background:#2980b9}
+#fileCount{margin-left:15px;color:#7f8c8d}
+.button-group{display:flex;gap:10px;margin-bottom:20px}
+button{background:#2ecc71;color:#fff;border:none;padding:10px 20px;cursor:pointer;border-radius:5px}
+button:hover{background:#27ae60}
+button:disabled{background:#95a5a6;cursor:not-allowed}
+.table-container{width:100%;overflow-x:auto;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,.1)}
+table{width:100%;border-collapse:separate;border-spacing:0;background:#fff}
+th,td{padding:10px;text-align:left;border-bottom:1px solid #e0e0e0}
+th{background:#f2f2f2;font-weight:bold;color:#2c3e50;position:sticky;top:0;z-index:10}
+.key-column{position:sticky;left:0;background:#f2f2f2;z-index:20}
+.changed{background:#fff9c4}
+.cell-content{max-height:100px;overflow-y:auto;word-break:break-word}
+.alert{background:#f8d7da;color:#721c24;padding:15px;border-radius:5px;margin-bottom:20px}
+.hidden{display:none}
+@media (max-width:768px){.container{padding:10px}.button-group{flex-direction:column}button{width:100%}}
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>JSON Analyzer - All Keys</h1>
+    <div class="card">
+        <div class="file-upload">
+            <label for="fileUpload">Choose Files</label>
+            <input type="file" id="fileUpload" multiple accept=".json">
+            <span id="fileCount">0 file(s) selected</span>
+        </div>
+    </div>
+    <div class="button-group">
+        <button id="analyzeButton">Analyze</button>
+        <button id="exportJsonButton" class="hidden">Export JSON</button>
+        <button id="exportCsvButton" class="hidden">Export CSV</button>
+    </div>
+    <div id="errorAlert" class="alert hidden"></div>
+    <div id="resultCard" class="card hidden">
+        <div class="table-container" id="analysisTable"></div>
+    </div>
+</div>
+<script>
+let files = [], payloads = [];
+const $ = document.querySelector.bind(document);
+const $$ = (sel, el = document) => Array.from(el.querySelectorAll(sel));
+
+$('#fileUpload').addEventListener('change', e => {
+    files = Array.from(e.target.files);
+    $('#fileCount').textContent = `${files.length} file(s) selected`;
+    $('#analyzeButton').disabled = !files.length;
+});
+
+$('#analyzeButton').addEventListener('click', analyzeJson);
+$('#exportJsonButton').addEventListener('click', () => exportData('json'));
+$('#exportCsvButton').addEventListener('click', () => exportData('csv'));
+
+async function analyzeJson() {
+    try {
+        payloads = await Promise.all(files.map(readFileAsJson));
+        renderTable();
+        $$('.hidden').forEach(el => el.classList.remove('hidden'));
+    } catch (error) {
+        showError(error.message);
+    }
+}
+
+function readFileAsJson(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+            try {
+                resolve({ fileName: file.name, content: JSON.parse(e.target.result) });
+            } catch (error) {
+                reject(new Error(`Failed to parse ${file.name}: ${error.message}`));
+            }
+        };
+        reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
+        reader.readAsText(file);
+    });
+}
+
+function renderTable() {
+    const allKeys = new Set();
+    payloads.forEach(payload => collectKeys(payload.content, '', allKeys));
+
+    let html = '<table><thead><tr><th class="key-column">Key</th>';
+    payloads.forEach(payload => html += `<th>${payload.fileName}</th>`);
+    html += '</tr></thead><tbody>';
+
+    allKeys.forEach(key => {
+        html += `<tr><th class="key-column">${key}</th>`;
+        payloads.forEach((payload, i) => {
+            const value = getNestedValue(payload.content, key);
+            const prevValue = i > 0 ? getNestedValue(payloads[i-1].content, key) : undefined;
+            const hasChanged = JSON.stringify(value) !== JSON.stringify(prevValue);
+            html += `<td class="${hasChanged ? 'changed' : ''}"><div class="cell-content">${formatValue(value)}</div></td>`;
+        });
+        html += '</tr>';
+    });
+
+    $('#analysisTable').innerHTML = html + '</tbody></table>';
+    $('#resultCard').classList.remove('hidden');
+}
+
+function collectKeys(obj, prefix, keySet) {
+    Object.keys(obj).forEach(key => {
+        const fullKey = prefix ? `${prefix}.${key}` : key;
+        keySet.add(fullKey);
+        if (typeof obj[key] === 'object' && obj[key] !== null) {
+            collectKeys(obj[key], fullKey, keySet);
+        }
+    });
+}
+
+function getNestedValue(obj, key) {
+    return key.split('.').reduce((o, k) => (o || {})[k], obj);
+}
+
+function formatValue(value) {
+    if (value === undefined) return '';
+    return typeof value === 'object' ? JSON.stringify(value) : String(value);
+}
+
+function exportData(type) {
+    const allKeys = new Set();
+    payloads.forEach(payload => collectKeys(payload.content, '', allKeys));
+
+    const content = type === 'json' ? JSON.stringify(payloads, null, 2) :
+        [['Key', ...payloads.map(p => p.fileName)].join(',')]
+        .concat(Array.from(allKeys)
+        .map(key => [key, ...payloads.map(p => JSON.stringify(getNestedValue(p.content, key) ?? ''))].join(','))).join('\n');
+
+    const blob = new Blob([content], { type: type === 'json' ? 'application/json' : 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `analysis.${type}`;
+    a.click();
+}
+
+function showError(message) {
+    $('#errorAlert').textContent = message;
+    $('#errorAlert').classList.remove('hidden');
+}
+</script>
+</body>
+</html>
