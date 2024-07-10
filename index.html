@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Analyzer</title>
+    <style>
+        /* Basic reset and overall page layout */
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        /* Styling for card components */
+        .card {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .card-title {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+
+        /* Button styles */
+        button {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        /* Utility class to hide elements */
+        .hidden {
+            display: none;
+        }
+
+        /* Table styles for displaying the journey */
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            position: relative;
+        }
+        table {
+            border-collapse: separate;
+            border-spacing: 0;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            min-width: 150px; /* Adjust this value as needed */
+            max-width: 300px; /* Adjust this value as needed */
+        }
+        th {
+            background-color: #f2f2f2;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .property-column {
+            position: sticky;
+            left: 0;
+            background-color: #f2f2f2;
+            z-index: 20;
+        }
+        .changed {
+            background-color: #fff9c4;
+        }
+        .cell-content {
+            max-height: 100px;
+            overflow-y: auto;
+            word-break: break-word;
+        }
+
+        /* Alert style for error messages */
+        .alert {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>JSON Analyzer</h1>
+        
+        <!-- File upload section -->
+        <div class="card">
+            <div class="card-title">Upload Payload Files</div>
+            <input type="file" id="fileUpload" multiple accept=".json">
+            <span id="fileCount">0 file(s) selected</span>
+        </div>
+        
+        <!-- Action buttons -->
+        <div>
+            <button id="analyzeButton">Analyze</button>
+            <button id="exportJsonButton" class="hidden">Export JSON</button>
+            <button id="exportCsvButton" class="hidden">Export CSV</button>
+        </div>
+        
+        <!-- Error alert placeholder -->
+        <div id="errorAlert" class="alert hidden"></div>
+        
+        <!-- Results display area -->
+        <div id="resultCard" class="card hidden">
+            <div class="card-title">Consumer Journey</div>
+            <div class="table-container">
+                <div id="journeyTable"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables to store file and payload data
+        let files = [];
+        let payloads = [];
+
+        // Event listener for file selection
+        document.getElementById('fileUpload').addEventListener('change', (event) => {
+            files = Array.from(event.target.files);
+            document.getElementById('fileCount').textContent = `${files.length} file(s) selected`;
+        });
+
+        // Event listeners for buttons
+        document.getElementById('analyzeButton').addEventListener('click', analyzeJourney);
+        document.getElementById('exportJsonButton').addEventListener('click', exportJson);
+        document.getElementById('exportCsvButton').addEventListener('click', exportCsv);
+
+        /**
+         * Main function to analyze the consumer journey
+         */
+        async function analyzeJourney() {
+            const analyzeButton = document.getElementById('analyzeButton');
+            analyzeButton.disabled = true;
+            analyzeButton.textContent = 'Analyzing...';
+            
+            try {
+                // Read and parse all JSON files
+                payloads = await Promise.all(files.map(file => readFileAsJson(file)));
+                
+                // Add file names to payloads and sort by timestamp
+                payloads = payloads.map((payload, index) => ({
+                    ...payload,
+                    fileName: files[index].name
+                })).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                
+                // Render the journey table and show export buttons
+                renderJourney();
+                document.getElementById('exportJsonButton').classList.remove('hidden');
+                document.getElementById('exportCsvButton').classList.remove('hidden');
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                // Reset button state
+                analyzeButton.disabled = false;
+                analyzeButton.textContent = 'Analyze Journey';
+            }
+        }
+
+        /**
+         * Reads a file and parses it as JSON
+         * @param {File} file - The file to read
+         * @returns {Promise<Object>} - Parsed JSON object
+         */
+        function readFileAsJson(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const json = JSON.parse(e.target.result);
+                        resolve(json);
+                    } catch (error) {
+                        reject(new Error(`Failed to parse ${file.name}: ${error.message}`));
+                    }
+                };
+                reader.onerror = (e) => reject(new Error(`Failed to read ${file.name}`));
+                reader.readAsText(file);
+            });
+        }
+
+        /**
+         * Renders the journey table
+         */
+        function renderJourney() {
+            // Collect all unique properties across all payloads
+            const allProperties = new Set();
+            payloads.forEach(payload => {
+                Object.keys(payload.properties).forEach(prop => allProperties.add(prop));
+            });
+
+            // Start building the HTML table
+            let tableHtml = '<table><thead><tr><th class="property-column">Property</th>';
+            payloads.forEach((payload, index) => {
+                tableHtml += `<th>${payload.fileName}<br>Step ${payloads.length - index}<br>${new Date(payload.timestamp).toLocaleString()}</th>`;
+            });
+            tableHtml += '</tr></thead><tbody>';
+
+            // Add rows for each property
+            allProperties.forEach(property => {
+                tableHtml += `<tr><th class="property-column">${property}</th>`;
+                payloads.forEach((payload, index) => {
+                    const value = payload.properties[property];
+                    const nextValue = payloads[index + 1]?.properties[property];
+                    const hasChanged = JSON.stringify(value) !== JSON.stringify(nextValue);
+                    tableHtml += `<td class="${hasChanged ? 'changed' : ''}"><div class="cell-content">${value !== undefined ? JSON.stringify(value) : ''}</div></td>`;
+                });
+                tableHtml += '</tr>';
+            });
+
+            tableHtml += '</tbody></table>';
+            
+            // Insert the table into the DOM and show the result card
+            document.getElementById('journeyTable').innerHTML = tableHtml;
+            document.getElementById('resultCard').classList.remove('hidden');
+        }
+
+        /**
+         * Exports the journey data as JSON
+         */
+        function exportJson() {
+            const dataStr = JSON.stringify({ payloads }, null, 2);
+            downloadFile(dataStr, 'consumer_journey_analysis.json', 'application/json');
+        }
+
+        /**
+         * Exports the journey data as CSV
+         */
+        function exportCsv() {
+            const allProperties = new Set();
+            payloads.forEach(payload => {
+                Object.keys(payload.properties).forEach(prop => allProperties.add(prop));
+            });
+
+            // Create CSV header
+            let csvContent = 'Property,' + payloads.map((_, index) => `Step ${payloads.length - index}`).join(',') + '\n';
+
+            // Add rows for each property
+            allProperties.forEach(property => {
+                csvContent += `${property},` + payloads.map(payload => 
+                    JSON.stringify(payload.properties[property] ?? '')
+                ).join(',') + '\n';
+            });
+
+            downloadFile(csvContent, 'consumer_journey_analysis.csv', 'text/csv');
+        }
+
+        /**
+         * Helper function to trigger file download
+         * @param {string} content - File content
+         * @param {string} fileName - Name of the file to be downloaded
+         * @param {string} contentType - MIME type of the file
+         */
+        function downloadFile(content, fileName, contentType) {
+            const a = document.createElement('a');
+            const file = new Blob([content], { type: contentType });
+            a.href = URL.createObjectURL(file);
+            a.download = fileName;
+            a.click();
+        }
+
+        /**
+         * Displays an error message
+         * @param {string} message - Error message to display
+         */
+        function showError(message) {
+            const errorAlert = document.getElementById('errorAlert');
+            errorAlert.textContent = message;
+            errorAlert.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
