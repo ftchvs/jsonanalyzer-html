@@ -102,6 +102,15 @@ button:disabled {
     cursor: not-allowed;
 }
 
+/* Copy Table Button Styling */
+#copyTableButton {
+    background: #3498db;
+    margin-bottom: 15px;
+}
+#copyTableButton:hover {
+    background: #2980b9;
+}
+
 /* Table Styling */
 .table-container {
     width: 100%;
@@ -141,6 +150,12 @@ th {
     max-height: 100px;
     overflow-y: auto;
     word-break: break-word;
+}
+
+/* Timestamp Row Styling */
+.timestamp-row {
+    background: #ecf0f1;
+    font-style: italic;
 }
 
 /* Alert Styling */
@@ -191,6 +206,7 @@ th {
         <button id="analyzeButton">Analyze</button>
         <button id="exportJsonButton" class="hidden">Export JSON</button>
         <button id="exportCsvButton" class="hidden">Export CSV</button>
+        <button id="copyTableButton" class="hidden">Copy Table</button>
     </div>
     
     <!-- Error Alert Placeholder -->
@@ -216,6 +232,7 @@ const fileCount = document.getElementById('fileCount');
 const analyzeButton = document.getElementById('analyzeButton');
 const exportJsonButton = document.getElementById('exportJsonButton');
 const exportCsvButton = document.getElementById('exportCsvButton');
+const copyTableButton = document.getElementById('copyTableButton');
 const errorAlert = document.getElementById('errorAlert');
 const resultCard = document.getElementById('resultCard');
 const analysisTable = document.getElementById('analysisTable');
@@ -231,6 +248,7 @@ fileUpload.addEventListener('change', (event) => {
 analyzeButton.addEventListener('click', analyzeJson);
 exportJsonButton.addEventListener('click', exportJson);
 exportCsvButton.addEventListener('click', exportCsv);
+copyTableButton.addEventListener('click', copyTable);
 
 /**
  * Main function to analyze the JSON files
@@ -241,18 +259,23 @@ async function analyzeJson() {
         // Read and parse all JSON files
         payloads = await Promise.all(files.map(file => readFileAsJson(file)));
         
-        // Extract properties from each payload and add file names
+        // Extract properties from each payload, add file names and timestamps
         payloads = payloads.map((payload, index) => ({
             fileName: files[index].name,
-            properties: payload.properties || {} // Use an empty object if properties is undefined
+            properties: payload.properties || {}, // Use an empty object if properties is undefined
+            timestamp: payload.timestamp || new Date().toISOString() // Use current time if timestamp is not provided
         }));
+        
+        // Sort payloads by timestamp
+        payloads.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         
         // Render the analysis table
         renderAnalysis();
         
-        // Show export buttons
+        // Show export and copy buttons
         exportJsonButton.classList.remove('hidden');
         exportCsvButton.classList.remove('hidden');
+        copyTableButton.classList.remove('hidden');
     } catch (error) {
         showError(error.message);
     }
@@ -279,6 +302,24 @@ function readFileAsJson(file) {
 }
 
 /**
+ * Formats a timestamp string into a more readable format
+ * @param {string} timestamp - The timestamp to format
+ * @returns {string} - The formatted timestamp
+ */
+function formatTimestamp(timestamp) {
+    const date = new Date(timestamp);
+    return date.toLocaleString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    });
+}
+
+/**
  * Renders the analysis table
  * This function creates an HTML table comparing properties across all JSON files
  */
@@ -293,6 +334,13 @@ function renderAnalysis() {
         tableHtml += `<th>${payload.fileName}</th>`;
     });
     tableHtml += '</tr></thead><tbody>';
+
+    // Add timestamp row with formatted timestamps
+    tableHtml += '<tr class="timestamp-row"><th>Timestamp</th>';
+    payloads.forEach(payload => {
+        tableHtml += `<td>${formatTimestamp(payload.timestamp)}</td>`;
+    });
+    tableHtml += '</tr>';
 
     // Add rows for each property
     allProperties.forEach(property => {
@@ -342,6 +390,9 @@ function exportCsv() {
     // Create CSV header
     let csvContent = 'Property,' + payloads.map(payload => payload.fileName).join(',') + '\n';
 
+    // Add timestamp row with formatted timestamps
+    csvContent += 'Timestamp,' + payloads.map(payload => formatTimestamp(payload.timestamp)).join(',') + '\n';
+
     // Add rows for each property
     allProperties.forEach(property => {
         csvContent += `${property},` + payloads.map(payload => 
@@ -373,6 +424,20 @@ function downloadFile(content, fileName, contentType) {
 function showError(message) {
     errorAlert.textContent = message;
     errorAlert.classList.remove('hidden');
+}
+
+/**
+ * Copies the analysis table to the clipboard
+ * This function is called when the "Copy Table" button is clicked
+ */
+function copyTable() {
+    const range = document.createRange();
+    range.selectNode(analysisTable.querySelector('table'));
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+    document.execCommand('copy');
+    window.getSelection().removeAllRanges();
+    alert('Table copied to clipboard!');
 }
 </script>
 </body>

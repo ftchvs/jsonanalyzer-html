@@ -45,6 +45,7 @@ th{background:#f2f2f2;font-weight:bold;color:#2c3e50;position:sticky;top:0;z-ind
         <button id="analyzeButton">Analyze</button>
         <button id="exportJsonButton" class="hidden">Export JSON</button>
         <button id="exportCsvButton" class="hidden">Export CSV</button>
+        <button id="copyTableButton" class="hidden">Copy Table</button>
     </div>
     <div id="errorAlert" class="alert hidden"></div>
     <div id="resultCard" class="card hidden">
@@ -65,6 +66,7 @@ $('#fileUpload').addEventListener('change', e => {
 $('#analyzeButton').addEventListener('click', analyzeJson);
 $('#exportJsonButton').addEventListener('click', () => exportData('json'));
 $('#exportCsvButton').addEventListener('click', () => exportData('csv'));
+$('#copyTableButton').addEventListener('click', copyTable);
 
 async function analyzeJson() {
     try {
@@ -95,12 +97,13 @@ function renderTable() {
     const allKeys = new Set();
     payloads.forEach(payload => collectKeys(payload.content, '', allKeys));
 
-    let html = '<table><thead><tr><th class="key-column">Key</th>';
+    let html = '<table><thead><tr><th class="key-column">Key Base</th><th class="key-column">Key Attribute</th>';
     payloads.forEach(payload => html += `<th>${payload.fileName}</th>`);
     html += '</tr></thead><tbody>';
 
     allKeys.forEach(key => {
-        html += `<tr><th class="key-column">${key}</th>`;
+        const [keyBase, keyAttribute] = splitKey(key);
+        html += `<tr><th class="key-column">${keyBase}</th><th class="key-column">${keyAttribute}</th>`;
         payloads.forEach((payload, i) => {
             const value = getNestedValue(payload.content, key);
             const prevValue = i > 0 ? getNestedValue(payloads[i-1].content, key) : undefined;
@@ -112,6 +115,12 @@ function renderTable() {
 
     $('#analysisTable').innerHTML = html + '</tbody></table>';
     $('#resultCard').classList.remove('hidden');
+}
+
+function splitKey(key) {
+    const parts = key.split('.');
+    if (parts.length === 1) return [parts[0], ''];
+    return [parts.slice(0, -1).join('.'), parts[parts.length - 1]];
 }
 
 function collectKeys(obj, prefix, keySet) {
@@ -138,15 +147,31 @@ function exportData(type) {
     payloads.forEach(payload => collectKeys(payload.content, '', allKeys));
 
     const content = type === 'json' ? JSON.stringify(payloads, null, 2) :
-        [['Key', ...payloads.map(p => p.fileName)].join(',')]
+        [['Key Base', 'Key Attribute', ...payloads.map(p => p.fileName)].join(',')]
         .concat(Array.from(allKeys)
-        .map(key => [key, ...payloads.map(p => JSON.stringify(getNestedValue(p.content, key) ?? ''))].join(','))).join('\n');
+        .map(key => {
+            const [keyBase, keyAttribute] = splitKey(key);
+            return [keyBase, keyAttribute, ...payloads.map(p => JSON.stringify(getNestedValue(p.content, key) ?? ''))].join(',');
+        })).join('\n');
 
     const blob = new Blob([content], { type: type === 'json' ? 'application/json' : 'text/csv' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `analysis.${type}`;
     a.click();
+}
+
+function copyTable() {
+    const tableHtml = $('#analysisTable').innerHTML;
+    const blob = new Blob([tableHtml], { type: 'text/html' });
+    const clipboardItem = new ClipboardItem({ 'text/html': blob });
+    
+    navigator.clipboard.write([clipboardItem]).then(() => {
+        alert('Table copied to clipboard!');
+    }).catch(err => {
+        console.error('Failed to copy table: ', err);
+        alert('Failed to copy table. Please try again.');
+    });
 }
 
 function showError(message) {
