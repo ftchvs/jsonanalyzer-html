@@ -25,6 +25,9 @@ The JSON Analyzer is a web-based tool designed to help developers, data analysts
 1. Clone this repository or download the HTML file.
 2. No additional installation steps are required as this is a client-side application.
 
+## Screenshot 📸
+![Screenshot](./Screenshot.png)
+
 ## Usage 📂
 
 1. Open the `index.html` file in a modern web browser.
