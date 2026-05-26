@@ -1,444 +1,623 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>JSON Properties Analyzer</title>
-<style>
-/* CSS Reset and Base Styles */
-* {
-    box-sizing: border-box;
-    margin: 0;
-}
-body {
-    font-family: sans-serif;
-    line-height: 1.6;
-    color: #333;
-    background: #f4f4f4;
-    padding: 20px;
-}
-
-/* Main Container Styling */
-.container {
-    max-width: 1200px;
-    margin: auto;
-    background: #fff;
-    padding: 30px;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0,0,0,.1);
-}
-
-/* Header Styling */
-h1 {
-    text-align: center;
-    color: #2c3e50;
-    margin-bottom: 30px;
-    font-size: 2.5em;
-}
-
-/* Card Component Styling */
-.card {
-    background: #fff;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 30px;
-    transition: box-shadow .3s;
-}
-.card:hover {
-    box-shadow: 0 2px 4px rgba(0,0,0,.1);
-}
-.card-title {
-    font-size: 1.2em;
-    margin-bottom: 15px;
-    color: #34495e;
-}
-
-/* File Upload Section Styling */
-.file-upload {
-    display: flex;
-    align-items: center;
-    margin-bottom: 15px;
-}
-.file-upload input[type="file"] {
-    display: none;
-}
-.file-upload label {
-    background: #3498db;
-    color: #fff;
-    padding: 10px 15px;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color .3s;
-}
-.file-upload label:hover {
-    background-color: #2980b9;
-}
-#fileCount {
-    margin-left: 15px;
-    color: #7f8c8d;
-}
-
-/* Button Group Styling */
-.button-group {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-}
-button {
-    background: #2ecc71;
-    color: #fff;
-    border: none;
-    padding: 10px 20px;
-    cursor: pointer;
-    border-radius: 5px;
-    transition: all .3s;
-}
-button:hover {
-    background: #27ae60;
-}
-button:disabled {
-    background: #95a5a6;
-    cursor: not-allowed;
-}
-
-/* Copy Table Button Styling */
-#copyTableButton {
-    background: #3498db;
-    margin-bottom: 15px;
-}
-#copyTableButton:hover {
-    background: #2980b9;
-}
-
-/* Table Styling */
-.table-container {
-    width: 100%;
-    overflow-x: auto;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,.1);
-}
-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    background: #fff;
-}
-th, td {
-    padding: 12px 15px;
-    text-align: left;
-    border-bottom: 1px solid #e0e0e0;
-}
-th {
-    background: #f2f2f2;
-    font-weight: bold;
-    color: #2c3e50;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
-.property-column {
-    position: sticky;
-    left: 0;
-    background: #f2f2f2;
-    z-index: 20;
-}
-.changed {
-    background: #fff9c4;
-}
-.cell-content {
-    max-height: 100px;
-    overflow-y: auto;
-    word-break: break-word;
-}
-
-/* Timestamp Row Styling */
-.timestamp-row {
-    background: #ecf0f1;
-    font-style: italic;
-}
-
-/* Alert Styling */
-.alert {
-    background: #f8d7da;
-    color: #721c24;
-    padding: 15px;
-    border-radius: 5px;
-    margin-bottom: 20px;
-    border: 1px solid #f5c6cb;
-}
-
-/* Utility Class */
-.hidden {
-    display: none;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .container {
-        padding: 15px;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A dependency-free browser tool for comparing properties across multiple JSON files.">
+  <title>JSON Analyzer</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f8fb;
+      --panel: #ffffff;
+      --ink: #111827;
+      --muted: #53627a;
+      --border: #d9e0ea;
+      --accent: #2563eb;
+      --accent-dark: #1d4ed8;
+      --changed: #fff3bf;
+      --danger-bg: #fef2f2;
+      --danger-border: #fecaca;
+      --danger-ink: #991b1b;
     }
-    .button-group {
-        flex-direction: column;
+
+    * {
+      box-sizing: border-box;
     }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
     button {
-        width: 100%;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      font-weight: 650;
+      min-height: 40px;
+      padding: 9px 14px;
     }
-}
-</style>
+
+    button:hover {
+      background: var(--accent-dark);
+    }
+
+    button.secondary {
+      background: var(--panel);
+      border-color: var(--border);
+      color: var(--ink);
+    }
+
+    button.secondary:hover {
+      background: #eef2f7;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    .app {
+      margin: 0 auto;
+      max-width: 1280px;
+      padding: 32px 20px 48px;
+    }
+
+    header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 4vw, 3rem);
+      letter-spacing: 0;
+      line-height: 1.05;
+      margin: 0;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin: 10px 0 0;
+      max-width: 760px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+      margin-bottom: 20px;
+      padding: 20px;
+    }
+
+    .panel-title {
+      font-size: 1.125rem;
+      font-weight: 750;
+      margin: 0 0 14px;
+    }
+
+    .upload-row,
+    .actions,
+    .summary-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .upload-row {
+      align-items: center;
+    }
+
+    .file-input {
+      clip: rect(0 0 0 0);
+      clip-path: inset(50%);
+      height: 1px;
+      overflow: hidden;
+      position: absolute;
+      white-space: nowrap;
+      width: 1px;
+    }
+
+    .file-count,
+    .note {
+      color: var(--muted);
+      font-size: 0.925rem;
+    }
+
+    .summary-card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      flex: 1 1 180px;
+      min-width: 0;
+      padding: 14px;
+    }
+
+    .summary-label {
+      color: var(--muted);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+    }
+
+    .summary-value {
+      font-size: 1.55rem;
+      font-weight: 750;
+      margin-top: 4px;
+    }
+
+    .table-wrap {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      max-height: 68vh;
+      overflow: auto;
+      position: relative;
+    }
+
+    table {
+      border-collapse: separate;
+      border-spacing: 0;
+      min-width: 100%;
+      width: max-content;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      max-width: 360px;
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #eef2f7;
+      color: #1f2937;
+      font-size: 0.9rem;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    .key-col {
+      left: 0;
+      min-width: 260px;
+      position: sticky;
+      z-index: 3;
+    }
+
+    td.key-col {
+      background: var(--panel);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 0.875rem;
+      font-weight: 650;
+    }
+
+    .value {
+      max-height: 120px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .changed {
+      background: var(--changed);
+    }
+
+    .empty {
+      color: #9aa4b2;
+    }
+
+    .alert {
+      background: var(--danger-bg);
+      border: 1px solid var(--danger-border);
+      border-radius: 8px;
+      color: var(--danger-ink);
+      margin-bottom: 20px;
+      padding: 12px 14px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 760px) {
+      .app {
+        padding: 24px 16px 36px;
+      }
+
+      header {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      button {
+        width: 100%;
+      }
+
+      th,
+      td {
+        max-width: 260px;
+      }
+    }
+  </style>
 </head>
 <body>
-<div class="container">
-    <h1>JSON Properties Analyzer</h1>
-    
-    <!-- File Upload Section -->
-    <div class="card">
-        <div class="card-title">Upload JSON Files</div>
-        <div class="file-upload">
-            <label for="fileUpload">Choose Files</label>
-            <input type="file" id="fileUpload" multiple accept=".json">
-            <span id="fileCount">0 file(s) selected</span>
+  <main class="app">
+    <header>
+      <div>
+        <h1>JSON Analyzer</h1>
+        <p class="subtitle">Compare multiple JSON files in the browser, flatten nested keys, highlight changed values, and export the result without a server or build step.</p>
+      </div>
+      <button id="loadSampleButton" class="secondary" type="button">Load sample data</button>
+    </header>
+
+    <section class="panel" aria-labelledby="upload-title">
+      <h2 id="upload-title" class="panel-title">Files</h2>
+      <div class="upload-row">
+        <button id="chooseFilesButton" type="button">Choose JSON files</button>
+        <input id="fileUpload" class="file-input" type="file" multiple accept="application/json,.json">
+        <span id="fileCount" class="file-count">No files selected</span>
+      </div>
+      <p class="note">Files are read locally with the File API. Data is not uploaded anywhere.</p>
+    </section>
+
+    <section class="panel">
+      <div class="actions">
+        <button id="analyzeButton" type="button" disabled>Analyze JSON</button>
+        <button id="exportJsonButton" class="secondary hidden" type="button">Export JSON</button>
+        <button id="exportCsvButton" class="secondary hidden" type="button">Export CSV</button>
+        <button id="copyTableButton" class="secondary hidden" type="button">Copy table</button>
+      </div>
+    </section>
+
+    <div id="errorAlert" class="alert hidden" role="alert"></div>
+
+    <section id="summaryPanel" class="panel hidden" aria-labelledby="summary-title">
+      <h2 id="summary-title" class="panel-title">Summary</h2>
+      <div class="summary-grid">
+        <div class="summary-card">
+          <div class="summary-label">Files</div>
+          <div id="fileTotal" class="summary-value">0</div>
         </div>
-    </div>
-    
-    <!-- Action Buttons -->
-    <div class="button-group">
-        <button id="analyzeButton">Analyze</button>
-        <button id="exportJsonButton" class="hidden">Export JSON</button>
-        <button id="exportCsvButton" class="hidden">Export CSV</button>
-        <button id="copyTableButton" class="hidden">Copy Table</button>
-    </div>
-    
-    <!-- Error Alert Placeholder -->
-    <div id="errorAlert" class="alert hidden"></div>
-    
-    <!-- Results Display Area -->
-    <div id="resultCard" class="card hidden">
-        <div class="card-title">Properties Analysis</div>
-        <div class="table-container">
-            <div id="analysisTable"></div>
+        <div class="summary-card">
+          <div class="summary-label">Keys</div>
+          <div id="keyTotal" class="summary-value">0</div>
         </div>
-    </div>
-</div>
+        <div class="summary-card">
+          <div class="summary-label">Changed cells</div>
+          <div id="changedTotal" class="summary-value">0</div>
+        </div>
+      </div>
+    </section>
 
-<script>
-// Global variables to store file and payload data
-let files = []; // Stores the selected files
-let payloads = []; // Stores the parsed JSON data from the files
+    <section id="resultPanel" class="panel hidden" aria-labelledby="result-title">
+      <h2 id="result-title" class="panel-title">Analysis</h2>
+      <div id="analysisTable" class="table-wrap"></div>
+    </section>
+  </main>
 
-// DOM element references for improved performance
-const fileUpload = document.getElementById('fileUpload');
-const fileCount = document.getElementById('fileCount');
-const analyzeButton = document.getElementById('analyzeButton');
-const exportJsonButton = document.getElementById('exportJsonButton');
-const exportCsvButton = document.getElementById('exportCsvButton');
-const copyTableButton = document.getElementById('copyTableButton');
-const errorAlert = document.getElementById('errorAlert');
-const resultCard = document.getElementById('resultCard');
-const analysisTable = document.getElementById('analysisTable');
+  <script>
+    const sampleFiles = [
+      {
+        fileName: 'checkout-step-1.json',
+        content: {
+          timestamp: '2026-05-01T10:00:00Z',
+          properties: {
+            customer: { segment: 'new', plan: 'starter' },
+            cart: { items: 2, total: 58.49 },
+            fulfillment: { method: 'ground', status: 'pending' }
+          }
+        }
+      },
+      {
+        fileName: 'checkout-step-2.json',
+        content: {
+          timestamp: '2026-05-01T10:03:00Z',
+          properties: {
+            customer: { segment: 'new', plan: 'starter' },
+            cart: { items: 3, total: 75.49 },
+            fulfillment: { method: 'ground', status: 'pending' }
+          }
+        }
+      },
+      {
+        fileName: 'checkout-step-3.json',
+        content: {
+          timestamp: '2026-05-01T10:06:00Z',
+          properties: {
+            customer: { segment: 'new', plan: 'pro' },
+            cart: { items: 3, total: 75.49 },
+            fulfillment: { method: 'express', status: 'ready' }
+          }
+        }
+      }
+    ];
 
-// Event listener for file selection
-fileUpload.addEventListener('change', (event) => {
-    files = Array.from(event.target.files); // Convert FileList to array
-    fileCount.textContent = `${files.length} file(s) selected`;
-    analyzeButton.disabled = files.length === 0; // Disable analyze button if no files are selected
-});
+    let selectedFiles = [];
+    let payloads = [];
+    let flattenedRows = [];
 
-// Event listeners for buttons
-analyzeButton.addEventListener('click', analyzeJson);
-exportJsonButton.addEventListener('click', exportJson);
-exportCsvButton.addEventListener('click', exportCsv);
-copyTableButton.addEventListener('click', copyTable);
+    const fileUpload = document.getElementById('fileUpload');
+    const chooseFilesButton = document.getElementById('chooseFilesButton');
+    const fileCount = document.getElementById('fileCount');
+    const analyzeButton = document.getElementById('analyzeButton');
+    const exportJsonButton = document.getElementById('exportJsonButton');
+    const exportCsvButton = document.getElementById('exportCsvButton');
+    const copyTableButton = document.getElementById('copyTableButton');
+    const loadSampleButton = document.getElementById('loadSampleButton');
+    const errorAlert = document.getElementById('errorAlert');
+    const summaryPanel = document.getElementById('summaryPanel');
+    const resultPanel = document.getElementById('resultPanel');
+    const analysisTable = document.getElementById('analysisTable');
+    const fileTotal = document.getElementById('fileTotal');
+    const keyTotal = document.getElementById('keyTotal');
+    const changedTotal = document.getElementById('changedTotal');
 
-/**
- * Main function to analyze the JSON files
- * This function is called when the "Analyze" button is clicked
- */
-async function analyzeJson() {
-    try {
-        // Read and parse all JSON files
-        payloads = await Promise.all(files.map(file => readFileAsJson(file)));
-        
-        // Extract properties from each payload, add file names and timestamps
-        payloads = payloads.map((payload, index) => ({
-            fileName: files[index].name,
-            properties: payload.properties || {}, // Use an empty object if properties is undefined
-            timestamp: payload.timestamp || new Date().toISOString() // Use current time if timestamp is not provided
-        }));
-        
-        // Sort payloads by timestamp
-        payloads.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-        
-        // Render the analysis table
-        renderAnalysis();
-        
-        // Show export and copy buttons
-        exportJsonButton.classList.remove('hidden');
-        exportCsvButton.classList.remove('hidden');
-        copyTableButton.classList.remove('hidden');
-    } catch (error) {
-        showError(error.message);
+    chooseFilesButton.addEventListener('click', () => fileUpload.click());
+    fileUpload.addEventListener('change', handleFileSelection);
+    analyzeButton.addEventListener('click', analyzeSelectedFiles);
+    exportJsonButton.addEventListener('click', exportAnalysisJson);
+    exportCsvButton.addEventListener('click', exportAnalysisCsv);
+    copyTableButton.addEventListener('click', copyAnalysisTable);
+    loadSampleButton.addEventListener('click', loadSampleData);
+
+    function handleFileSelection(event) {
+      selectedFiles = Array.from(event.target.files || []);
+      fileCount.textContent = selectedFiles.length === 1 ? '1 file selected' : `${selectedFiles.length} files selected`;
+      analyzeButton.disabled = selectedFiles.length === 0;
+      hideError();
     }
-}
 
-/**
- * Reads a file and parses it as JSON
- * @param {File} file - The file to read
- * @returns {Promise<Object>} - Parsed JSON object
- */
-function readFileAsJson(file) {
-    return new Promise((resolve, reject) => {
+    async function analyzeSelectedFiles() {
+      try {
+        hideError();
+        payloads = await Promise.all(selectedFiles.map(readFileAsJson));
+        renderAnalysis(payloads);
+      } catch (error) {
+        showError(error.message || 'Unable to analyze JSON files.');
+      }
+    }
+
+    function loadSampleData() {
+      selectedFiles = [];
+      fileUpload.value = '';
+      fileCount.textContent = 'Sample data loaded';
+      analyzeButton.disabled = true;
+      hideError();
+      payloads = sampleFiles.map((sample) => ({ ...sample }));
+      renderAnalysis(payloads);
+    }
+
+    function readFileAsJson(file) {
+      return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                resolve(JSON.parse(e.target.result));
-            } catch (error) {
-                reject(new Error(`Failed to parse ${file.name}: ${error.message}`));
-            }
+        reader.onload = (event) => {
+          try {
+            resolve({
+              fileName: file.name,
+              content: JSON.parse(event.target.result)
+            });
+          } catch (error) {
+            reject(new Error(`Failed to parse ${file.name}: ${error.message}`));
+          }
         };
         reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
         reader.readAsText(file);
-    });
-}
+      });
+    }
 
-/**
- * Formats a timestamp string into a more readable format
- * @param {string} timestamp - The timestamp to format
- * @returns {string} - The formatted timestamp
- */
-function formatTimestamp(timestamp) {
-    const date = new Date(timestamp);
-    return date.toLocaleString('en-US', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-    });
-}
+    function renderAnalysis(items) {
+      const normalized = items
+        .map(normalizePayload)
+        .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
-/**
- * Renders the analysis table
- * This function creates an HTML table comparing properties across all JSON files
- */
-function renderAnalysis() {
-    // Collect all unique properties across all payloads
-    const allProperties = new Set();
-    payloads.forEach(payload => Object.keys(payload.properties).forEach(prop => allProperties.add(prop)));
+      const keySet = new Set();
+      normalized.forEach((payload) => {
+        Object.keys(payload.flat).forEach((key) => keySet.add(key));
+      });
 
-    // Start building the HTML table
-    let tableHtml = '<table><thead><tr><th class="property-column">Property</th>';
-    payloads.forEach((payload) => {
-        tableHtml += `<th>${payload.fileName}</th>`;
-    });
-    tableHtml += '</tr></thead><tbody>';
-
-    // Add timestamp row with formatted timestamps
-    tableHtml += '<tr class="timestamp-row"><th>Timestamp</th>';
-    payloads.forEach(payload => {
-        tableHtml += `<td>${formatTimestamp(payload.timestamp)}</td>`;
-    });
-    tableHtml += '</tr>';
-
-    // Add rows for each property
-    allProperties.forEach(property => {
-        tableHtml += `<tr><th class="property-column">${property}</th>`;
-        payloads.forEach((payload, index) => {
-            const value = payload.properties[property];
-            const prevValue = index > 0 ? payloads[index - 1].properties[property] : undefined;
-            const hasChanged = JSON.stringify(value) !== JSON.stringify(prevValue);
-            tableHtml += `<td class="${hasChanged ? 'changed' : ''}"><div class="cell-content">${formatValue(value)}</div></td>`;
+      flattenedRows = Array.from(keySet)
+        .sort((a, b) => a.localeCompare(b))
+        .map((key) => {
+          const values = normalized.map((payload) => payload.flat[key]);
+          const changed = values.map((value, index) => index > 0 && stringify(value) !== stringify(values[index - 1]));
+          return { key, values, changed };
         });
-        tableHtml += '</tr>';
-    });
 
-    tableHtml += '</tbody></table>';
-    
-    // Insert the table into the DOM and show the result card
-    analysisTable.innerHTML = tableHtml;
-    resultCard.classList.remove('hidden');
-}
+      payloads = normalized;
+      fileTotal.textContent = String(payloads.length);
+      keyTotal.textContent = String(flattenedRows.length);
+      changedTotal.textContent = String(flattenedRows.reduce((total, row) => total + row.changed.filter(Boolean).length, 0));
 
-/**
- * Formats a value for display in the table
- * @param {*} value - The value to format
- * @returns {string} - The formatted value
- */
-function formatValue(value) {
-    if (value === undefined) return '';
-    return typeof value === 'object' ? JSON.stringify(value) : String(value);
-}
+      renderTable();
+      summaryPanel.classList.remove('hidden');
+      resultPanel.classList.remove('hidden');
+      exportJsonButton.classList.remove('hidden');
+      exportCsvButton.classList.remove('hidden');
+      copyTableButton.classList.remove('hidden');
+    }
 
-/**
- * Exports the analysis data as JSON
- * This function is called when the "Export JSON" button is clicked
- */
-function exportJson() {
-    downloadFile(JSON.stringify({ payloads }, null, 2), 'properties_analysis.json', 'application/json');
-}
+    function normalizePayload(payload) {
+      const content = payload.content || {};
+      const source = isPlainObject(content.properties) ? content.properties : content;
+      return {
+        fileName: payload.fileName,
+        timestamp: typeof content.timestamp === 'string' ? content.timestamp : payload.fileName,
+        flat: flattenObject(source)
+      };
+    }
 
-/**
- * Exports the analysis data as CSV
- * This function is called when the "Export CSV" button is clicked
- */
-function exportCsv() {
-    const allProperties = new Set();
-    payloads.forEach(payload => Object.keys(payload.properties).forEach(prop => allProperties.add(prop)));
+    function flattenObject(value, prefix = '', output = {}) {
+      if (Array.isArray(value)) {
+        value.forEach((item, index) => flattenObject(item, `${prefix}[${index}]`, output));
+        if (value.length === 0 && prefix) {
+          output[prefix] = [];
+        }
+        return output;
+      }
 
-    // Create CSV header
-    let csvContent = 'Property,' + payloads.map(payload => payload.fileName).join(',') + '\n';
+      if (isPlainObject(value)) {
+        const keys = Object.keys(value);
+        keys.forEach((key) => flattenObject(value[key], prefix ? `${prefix}.${key}` : key, output));
+        if (keys.length === 0 && prefix) {
+          output[prefix] = {};
+        }
+        return output;
+      }
 
-    // Add timestamp row with formatted timestamps
-    csvContent += 'Timestamp,' + payloads.map(payload => formatTimestamp(payload.timestamp)).join(',') + '\n';
+      output[prefix || 'value'] = value;
+      return output;
+    }
 
-    // Add rows for each property
-    allProperties.forEach(property => {
-        csvContent += `${property},` + payloads.map(payload => 
-            JSON.stringify(payload.properties[property] ?? '')
-        ).join(',') + '\n';
-    });
+    function renderTable() {
+      analysisTable.replaceChildren();
+      const table = document.createElement('table');
+      const thead = document.createElement('thead');
+      const tbody = document.createElement('tbody');
 
-    downloadFile(csvContent, 'properties_analysis.csv', 'text/csv');
-}
+      const headerRow = document.createElement('tr');
+      headerRow.appendChild(createHeaderCell('Key', 'key-col'));
+      payloads.forEach((payload) => headerRow.appendChild(createHeaderCell(payload.fileName)));
+      thead.appendChild(headerRow);
 
-/**
- * Helper function to trigger file download
- * @param {string} content - File content
- * @param {string} fileName - Name of the file to be downloaded
- * @param {string} contentType - MIME type of the file
- */
-function downloadFile(content, fileName, contentType) {
-    const a = document.createElement('a');
-    const file = new Blob([content], { type: contentType });
-    a.href = URL.createObjectURL(file);
-    a.download = fileName;
-    a.click();
-}
+      const timestampRow = document.createElement('tr');
+      timestampRow.appendChild(createBodyCell('Timestamp', 'key-col'));
+      payloads.forEach((payload) => timestampRow.appendChild(createBodyCell(formatTimestamp(payload.timestamp))));
+      tbody.appendChild(timestampRow);
 
-/**
- * Displays an error message
- * @param {string} message - Error message to display
- */
-function showError(message) {
-    errorAlert.textContent = message;
-    errorAlert.classList.remove('hidden');
-}
+      flattenedRows.forEach((row) => {
+        const tr = document.createElement('tr');
+        tr.appendChild(createBodyCell(row.key, 'key-col'));
+        row.values.forEach((value, index) => {
+          const cell = createBodyCell(formatValue(value));
+          if (row.changed[index]) {
+            cell.classList.add('changed');
+          }
+          tr.appendChild(cell);
+        });
+        tbody.appendChild(tr);
+      });
 
-/**
- * Copies the analysis table to the clipboard
- * This function is called when the "Copy Table" button is clicked
- */
-function copyTable() {
-    const range = document.createRange();
-    range.selectNode(analysisTable.querySelector('table'));
-    window.getSelection().removeAllRanges();
-    window.getSelection().addRange(range);
-    document.execCommand('copy');
-    window.getSelection().removeAllRanges();
-    alert('Table copied to clipboard!');
-}
-</script>
+      table.appendChild(thead);
+      table.appendChild(tbody);
+      analysisTable.appendChild(table);
+    }
+
+    function createHeaderCell(text, className = '') {
+      const th = document.createElement('th');
+      th.textContent = text;
+      if (className) th.className = className;
+      return th;
+    }
+
+    function createBodyCell(text, className = '') {
+      const td = document.createElement('td');
+      if (className) td.className = className;
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'value';
+      wrapper.textContent = text;
+      if (text === '') wrapper.classList.add('empty');
+      td.appendChild(wrapper);
+      return td;
+    }
+
+    function formatTimestamp(value) {
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+    }
+
+    function formatValue(value) {
+      if (value === undefined) return '';
+      if (typeof value === 'string') return value;
+      return JSON.stringify(value);
+    }
+
+    function stringify(value) {
+      return value === undefined ? '' : JSON.stringify(value);
+    }
+
+    function isPlainObject(value) {
+      return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+    }
+
+    function exportAnalysisJson() {
+      downloadFile(
+        JSON.stringify({ files: payloads.map(({ fileName, timestamp }) => ({ fileName, timestamp })), rows: flattenedRows }, null, 2),
+        'json-analysis.json',
+        'application/json'
+      );
+    }
+
+    function exportAnalysisCsv() {
+      const csv = buildExportRows()
+        .map((row) => row.map(escapeCsvCell).join(','))
+        .join('\n');
+      downloadFile(csv, 'json-analysis.csv', 'text/csv');
+    }
+
+    async function copyAnalysisTable() {
+      try {
+        const text = buildPlainTextTable();
+        await navigator.clipboard.writeText(text);
+        copyTableButton.textContent = 'Copied';
+        setTimeout(() => {
+          copyTableButton.textContent = 'Copy table';
+        }, 1400);
+      } catch {
+        showError('Unable to copy table. Your browser may require HTTPS or clipboard permission.');
+      }
+    }
+
+    function buildPlainTextTable() {
+      return buildExportRows().map((row) => row.join('\t')).join('\n');
+    }
+
+    function buildExportRows() {
+      const header = ['Key', ...payloads.map((payload) => payload.fileName)];
+      const timestampRow = ['Timestamp', ...payloads.map((payload) => formatTimestamp(payload.timestamp))];
+      const rows = flattenedRows.map((row) => [row.key, ...row.values.map(formatValue)]);
+      return [header, timestampRow, ...rows];
+    }
+
+    function escapeCsvCell(value) {
+      return `"${String(value).replaceAll('"', '""')}"`;
+    }
+
+    function downloadFile(content, fileName, contentType) {
+      const file = new Blob([content], { type: contentType });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(file);
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(link.href);
+    }
+
+    function showError(message) {
+      errorAlert.textContent = message;
+      errorAlert.classList.remove('hidden');
+    }
+
+    function hideError() {
+      errorAlert.textContent = '';
+      errorAlert.classList.add('hidden');
+    }
+  </script>
 </body>
 </html>

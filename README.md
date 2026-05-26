@@ -1,80 +1,65 @@
+# JSON Analyzer HTML
 
-# JSON Analyzer 📊
+A dependency-free static HTML sample for comparing properties across multiple JSON files in the browser.
 
-## Overview 🌐
+The app flattens nested JSON keys, displays values across files in a horizontally scrollable table, highlights changed cells, and supports JSON/CSV export. It runs entirely client-side, so files are read locally and are not uploaded to a server.
 
-The JSON Analyzer is a web-based tool designed to help developers, data analysts, and businesses visualize and understand complex JSON data structures across multiple files. By processing JSON files, this tool creates a comprehensive view of the data, highlighting changes in properties over time or across different files.
+## Features
 
-## Features ✨
+- Single-file static app in `index.html`
+- Multiple `.json` file upload
+- Built-in sample data for quick testing
+- Nested key flattening with dot paths and array indexes
+- Change highlighting between adjacent files
+- Sticky key column for wide comparisons
+- Export results as JSON or CSV
+- Copy table as tab-separated text
+- No build step and no runtime dependencies
 
-- **File Upload**: Easily upload multiple JSON files for analysis.
-- **Interactive Analysis**: Dynamically analyze and display JSON data information.
-- **Responsive Table**: View data in a responsive table format with horizontal scrolling and a fixed property column.
-- **Change Highlighting**: Easily identify changes in properties between different JSON files with highlighted cells.
-- **Export Functionality**: Export analyzed data in both JSON and CSV formats for further processing or reporting.
-- **Error Handling**: Robust error handling for file parsing and analysis processes.
+## Usage
 
-## Technical Specifications ⚙️
+Open `index.html` directly in a browser, or serve the folder with any static file server.
 
-- **Language**: HTML5, CSS3, JavaScript (ES6+)
-- **Dependencies**: None (vanilla JavaScript implementation)
-- **Browser Compatibility**: Modern web browsers (Chrome, Firefox, Safari, Edge)
+```sh
+python3 -m http.server 8080
+```
 
-## Installation 🛠️
+Then open [http://localhost:8080](http://localhost:8080).
 
-1. Clone this repository or download the HTML file.
-2. No additional installation steps are required as this is a client-side application.
+## Expected JSON Shape
 
-## Screenshot 📸
-![Screenshot](./Screenshot.png)
-
-## Usage 📂
-
-1. Open the `index.html` file in a modern web browser.
-2. Click on "Select Files" to upload your JSON files.
-3. Click "Analyze JSON" to process the files and display the results.
-4. Use the horizontal scroll to view all columns of the analysis.
-5. The property column remains fixed for easy reference while scrolling.
-6. Cells highlighted in yellow indicate a change in value from the previous file.
-7. Use the "Export JSON" or "Export CSV" buttons to download the analyzed data.
-
-## JSON File Format 📄
-
-The analyzer can process any valid JSON files. For timestamp-based analysis, it expects JSON files with a structure similar to:
+The analyzer accepts any valid JSON object. If a file contains a `properties` object, that object is used as the comparison root and `timestamp` is used for ordering/display:
 
 ```json
 {
-  "timestamp": "2023-04-01T12:00:00Z",
+  "timestamp": "2026-05-01T10:00:00Z",
   "properties": {
-    "property1": "value1",
-    "property2": "value2",
-    ...
+    "customer": {
+      "plan": "starter"
+    },
+    "cart": {
+      "items": 2
+    }
   }
 }
 ```
 
-However, it can analyze any JSON structure, adapting to the properties found in the files.
+If `properties` is not present, the full JSON object is analyzed.
 
-## Best Practices 🌟
+## Privacy
 
-- Ensure your JSON files are properly formatted to avoid parsing errors.
-- For optimal performance, limit the number of files and the size of the JSON payloads.
-- When analyzing large datasets, consider using a device with a larger screen for better visibility.
+Uploaded files are read with the browser File API. The sample has no server calls and does not persist payloads.
 
-## Troubleshooting 🛠️
+Do not use sensitive production data in a hosted copy unless you control and trust that hosting environment.
 
-- If files fail to upload, ensure they are in a valid JSON format.
-- Clear your browser cache if you encounter persistent issues.
-- Check the console in your browser's developer tools for any error messages.
+## Screenshot
 
-## Contributing 🤝
+![JSON Analyzer screenshot](./Screenshot.png)
 
-We welcome contributions to improve the JSON Analyzer. Please feel free to submit issues or pull requests to our repository.
+## Contributing
 
-## License 📜
+Contributions are welcome. Keep the sample dependency-free unless there is a clear reason to add a build tool or framework.
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+## License
 
----
-
-Thank you for using the JSON Analyzer. We hope this tool provides valuable insights into your JSON data structures!
+MIT. See [LICENSE](LICENSE).
