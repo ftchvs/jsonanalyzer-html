@@ -564,9 +564,7 @@
     }
 
     function exportAnalysisCsv() {
-      const header = ['Key', ...payloads.map((payload) => payload.fileName)];
-      const rows = flattenedRows.map((row) => [row.key, ...row.values.map(formatValue)]);
-      const csv = [header, ...rows]
+      const csv = buildExportRows()
         .map((row) => row.map(escapeCsvCell).join(','))
         .join('\n');
       downloadFile(csv, 'json-analysis.csv', 'text/csv');
@@ -586,9 +584,14 @@
     }
 
     function buildPlainTextTable() {
+      return buildExportRows().map((row) => row.join('\t')).join('\n');
+    }
+
+    function buildExportRows() {
       const header = ['Key', ...payloads.map((payload) => payload.fileName)];
+      const timestampRow = ['Timestamp', ...payloads.map((payload) => formatTimestamp(payload.timestamp))];
       const rows = flattenedRows.map((row) => [row.key, ...row.values.map(formatValue)]);
-      return [header, ...rows].map((row) => row.join('\t')).join('\n');
+      return [header, timestampRow, ...rows];
     }
 
     function escapeCsvCell(value) {
